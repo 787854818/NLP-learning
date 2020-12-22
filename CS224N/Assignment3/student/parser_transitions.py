@@ -31,7 +31,9 @@ class PartialParse(object):
         ###
         ### Note: The root token should be represented with the string "ROOT"
         ###
-
+        self.stack = ['ROOT']
+        self.buffer = sentence[:]
+        self.dependencies = []
 
         ### END YOUR CODE
 
@@ -50,7 +52,17 @@ class PartialParse(object):
         ###         1. Shift
         ###         2. Left Arc
         ###         3. Right Arc
-
+        if transition == 'S':
+            word = self.buffer.pop(0)
+            self.stack.append(word)
+        elif transition == 'LA':
+            head = self.stack[-1]
+            dependent = self.stack.pop(-2)
+            self.dependencies.append( (head, dependent) )
+        else:
+            head = self.stack[-2]
+            dependent = self.stack.pop(-1)
+            self.dependencies.append( (head, dependent) )
 
         ### END YOUR CODE
 
@@ -101,6 +113,29 @@ def minibatch_parse(sentences, model, batch_size):
     ###             contains references to the same objects. Thus, you should NOT use the `del` operator
     ###             to remove objects from the `unfinished_parses` list. This will free the underlying memory that
     ###             is being accessed by `partial_parses` and may cause your code to crash.
+    partial_parses = []
+    for sen in sentences:
+        partial_parses.append( PartialParse(sen) )
+    unfinished_parses = partial_parses[:]
+    while unfinished_parses:
+        count = len(unfinished_parses)
+        transitions = []
+        # 预测transitions
+        for i in range(count//batch_size+1):
+            start = i*batch_size
+            end = min(start+batch_size, count)
+            transitions = model.predict(unfinished_parses[start:end])
+            print(i, transitions)
+            # 执行transitions
+            for idx, tran in enumerate(transitions):
+                unfinished_parses[start+idx].parse_step(tran)
+        # 检查已完成的parse
+        unfinished_parses = [parse for parse in unfinished_parses if not (len(parse.stack)==1 and len(parse.buffer) == 0)]
+    for parse in partial_parses:
+        dependencies.append(parse.dependencies)
+
+
+
 
 
     ### END YOUR CODE
@@ -170,7 +205,7 @@ class DummyModel(object):
         """First shifts everything onto the stack and then does exclusively right arcs if the first word of
         the sentence is "right", "left" if otherwise.
         """
-        return [("RA" if pp.stack[1] is "right" else "LA") if len(pp.buffer) == 0 else "S"
+        return [("RA" if pp.stack[1] == "right" else "LA") if len(pp.buffer) == 0 else "S"
                 for pp in partial_parses]
 
     def interleave_predict(self, partial_parses):
@@ -221,7 +256,12 @@ def test_minibatch_parse():
 
 
 if __name__ == '__main__':
+
     args = sys.argv
+    #-----switch-----
+    if args is None or len(args)<2:
+        args = ['test', 'part_d']
+    #----------------
     if len(args) != 2:
         raise Exception("You did not provide a valid keyword. Either provide 'part_c' or 'part_d', when executing this script")
     elif args[1] == "part_c":
