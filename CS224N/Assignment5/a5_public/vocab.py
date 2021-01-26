@@ -25,6 +25,7 @@ import json
 import torch
 from typing import List
 from utils import read_corpus, pad_sents, pad_sents_char
+import copy
 
 class VocabEntry(object):
     """ Vocabulary Entry, i.e. structure containing either
@@ -126,9 +127,13 @@ class VocabEntry(object):
         ###     defined above.
         ###
         ###     You must prepend each word with the `start_of_word` character and append 
-        ###     with the `end_of_word` character. 
-
-
+        ###     with the `end_of_word` character.
+        word_ids = copy.deepcopy(sents)
+        for i in range(len(word_ids)):
+            for j in range(len(word_ids[i])):
+                str_word = '{' + word_ids[i][j] + '}'
+                word_ids[i][j] = [self.char2id[char] for char in str_word]
+        return word_ids
         ### END YOUR CODE
 
     def words2indices(self, sents):
@@ -158,8 +163,11 @@ class VocabEntry(object):
         ### TODO: 
         ###     Connect `words2charindices()` and `pad_sents_char()` which you've defined in 
         ###     previous parts
-        
-
+        sents_var = self.words2charindices(sents)
+        sents_var = pad_sents_char(sents_var, 0)
+        sents_var = torch.Tensor(sents_var, device = device)    # batch_size * max_sentence_length * max_word_length
+        sents_var = sents_var.permute(1, 0, 2)    # max_sentence_length * batch_size * max_word_length
+        return sents_var
         ### END YOUR CODE
 
     def to_input_tensor(self, sents: List[List[str]], device: torch.device) -> torch.Tensor:

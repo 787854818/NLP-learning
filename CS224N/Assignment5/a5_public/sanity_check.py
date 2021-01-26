@@ -180,11 +180,11 @@ def question_2d_sanity_check(decoder):
 def main():
     """ Main func.
     """
-    args = docopt(__doc__)
+    # args = docopt(__doc__)
 
     # Check Python & PyTorch Versions
     assert (sys.version_info >= (3, 5)), "Please update your installation of Python to version >= 3.5"
-    assert(torch.__version__ == "1.0.0"), "Please update your installation of PyTorch. You have {} and you should have version 1.0.0".format(torch.__version__)
+    assert(torch.__version__ >= "1.0.0"), "Please update your installation of PyTorch. You have {} and you should have version 1.0.0".format(torch.__version__)
 
     # Seed the Random Number Generators
     seed = 1234
@@ -209,22 +209,23 @@ def main():
         char_embedding_size=EMBED_SIZE,
         target_vocab=char_vocab)
 
-    if args['1e']:
-        question_1e_sanity_check()
-    elif args['1f']:
-        question_1f_sanity_check()
-    elif args['1j']:
-        question_1j_sanity_check(model)
-    elif args['2a']:
-        question_2a_sanity_check(decoder, char_vocab)
-    elif args['2b']:
-        question_2b_sanity_check(decoder, char_vocab)
-    elif args['2c']:
-        question_2c_sanity_check(decoder)
-    elif args['2d']:
-        question_2d_sanity_check(decoder)
-    else:
-        raise RuntimeError('invalid run mode')
+    question_2d_sanity_check(decoder)
+    # if args['1e']:
+    #     question_1e_sanity_check()
+    # elif args['1f']:
+    #     question_1f_sanity_check()
+    # elif args['1j']:
+    #     question_1j_sanity_check(model)
+    # elif args['2a']:
+    #     question_2a_sanity_check(decoder, char_vocab)
+    # elif args['2b']:
+    #     question_2b_sanity_check(decoder, char_vocab)
+    # elif args['2c']:
+    #     question_2c_sanity_check(decoder)
+    # elif args['2d']:
+    #     question_2d_sanity_check(decoder)
+    # else:
+    #     raise RuntimeError('invalid run mode')
 
 
 if __name__ == '__main__':

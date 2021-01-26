@@ -17,8 +17,8 @@ import torch.nn as nn
 #   `Highway` in the file `highway.py`
 # Uncomment the following two imports once you're ready to run part 1(j)
 
-# from cnn import CNN
-# from highway import Highway
+from cnn import CNN
+from highway import Highway
 
 # End "do not change" 
 
@@ -40,8 +40,15 @@ class ModelEmbeddings(nn.Module):
         ## End A4 code
 
         ### YOUR CODE HERE for part 1j
-
-
+        self.embed_size = embed_size
+        self.e_word = embed_size
+        self.e_char = 50
+        self.dropout_rate = 0.3
+        self.vocab = vocab     # 这里的vocab指的是一个vocab entity
+        self.char_embed = nn.Embedding(len(vocab.char2id), self.e_char)
+        self.cnn = CNN(self.e_char, self.e_word, kernel_size=5)
+        self.highway = Highway(self.e_word)
+        self.dropout = nn.Dropout(self.dropout_rate)
         ### END YOUR CODE
 
     def forward(self, input):
@@ -59,6 +66,23 @@ class ModelEmbeddings(nn.Module):
         ## End A4 code
 
         ### YOUR CODE HERE for part 1j
+        sentence_length = input.shape[0]
+        batch_size = input.shape[1]
+        max_word_length = input.shape[2]
+        input = input.long()
+        input = input.permute(1, 0, 2)                  # (batch_size, sentence_length, max_word_length)
+        input = input.reshape(-1, max_word_length)      # (batch_size * sentence_length, max_word_length)
+        X_emb = self.char_embed(input)                  # ( batch_size * sentence_length, max_word_length, e_char)
+        X_reshaped = X_emb.permute(0, 2, 1)             # ( batch_size * sentence_length, e_char, max_word_length)
+        X_conv_out = self.cnn(X_reshaped)               # ( batch_size * sentence_length, e_word)
+        X_highway = self.highway(X_conv_out)            # ( batch_size * sentence_length, e_word)
+        X_word_emb = self.dropout(X_highway)            # ( batch_size * sentence_length, e_word)
+        X_word_emb = X_word_emb.reshape(batch_size, sentence_length, -1)  # ( batch_size, sentence_length, e_word)
+        X_word_emb = X_word_emb.permute(1, 0, 2)
+
+
+        return X_word_emb
+
 
 
         ### END YOUR CODE

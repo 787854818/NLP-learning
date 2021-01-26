@@ -27,7 +27,12 @@ class CharDecoder(nn.Module):
         ### Hint: - Use target_vocab.char2id to access the character vocabulary for the target language.
         ###       - Set the padding_idx argument of the embedding matrix.
         ###       - Create a new Embedding layer. Do not reuse embeddings created in Part 1 of this assignment.
-        
+        super().__init__()
+        v_char = len(target_vocab.char2id)
+        self.charDecoder = nn.LSTM(input_size=char_embedding_size, hidden_size=hidden_size)
+        self.char_output_projection = nn.Linear(in_features=hidden_size, out_features=v_char, bias=True)
+        self.decoderCharEmb = nn.Embedding(num_embeddings=v_char, embedding_dim=char_embedding_size, padding_idx=target_vocab.char2id['<pad>'])
+        self.target_vocab = target_vocab
 
         ### END YOUR CODE
 
@@ -44,6 +49,12 @@ class CharDecoder(nn.Module):
         """
         ### YOUR CODE HERE for part 2b
         ### TODO - Implement the forward pass of the character decoder.
+        input = input.long()
+        input = self.decoderCharEmb(input)          # (length, batch, char_embedding_size)
+        outputs, (h_t, c_t) = self.charDecoder(input, dec_hidden)  # (length, batch, hidden_size), (1, batch, hidden_size), (1, batch, hidden_size)
+        s_t = self.char_output_projection(outputs)      # (length, batch, v_char)
+        dec_hidden = (h_t, c_t)
+        return s_t, dec_hidden
         
         
         ### END YOUR CODE 
@@ -62,6 +73,36 @@ class CharDecoder(nn.Module):
         ###
         ### Hint: - Make sure padding characters do not contribute to the cross-entropy loss.
         ###       - char_sequence corresponds to the sequence x_1 ... x_{n+1} from the handout (e.g., <START>,m,u,s,i,c,<END>).
+        """s_t, dec_hidden = self.forward(char_sequence, dec_hidden)
+        length = s_t.shape[0]
+        batch = s_t.shape[1]
+        v_char = s_t.shape[2]
+
+        loss_func = nn.CrossEntropyLoss()
+        ipt = s_t[:length - 1].reshape(-1, v_char)
+        tgt = char_sequence[1:].reshape(-1)
+        loss = loss_func(ipt, tgt)
+        return loss"""
+        self.padding_idx = self.target_vocab.char2id['<pad>']
+        input = char_sequence[:-1]
+        target = char_sequence[1:]
+
+        scores, dec_hidden = self.forward(input, dec_hidden)
+        # skip padding torch.nn.CrossEntropyLoss(weight=None, size_average=None, ignore_index=-100, reduce=None, reduction='mean')
+        self.cross_entropy_loss = nn.CrossEntropyLoss(ignore_index=self.padding_idx,
+                                                      reduction='sum')
+
+        # score  (length,batch_size,self.vocab_size)
+        # target  (length,batch_size)
+        scores = scores.permute(1, 2, 0)                # 这里要排列的原因是，CrossEntropyLoss的输入为(N, C, d1,..., dk)
+        target = target.permute(1, 0)
+        # score  (batch_size,self.vocab_size,length)
+        # target  (batch_size,length)
+        target = target.long()
+        loss = self.cross_entropy_loss(scores, target)
+
+        return loss
+
 
 
         ### END YOUR CODE
@@ -83,7 +124,40 @@ class CharDecoder(nn.Module):
         ###      - Use torch.tensor(..., device=device) to turn a list of character indices into a tensor.
         ###      - We use curly brackets as start-of-word and end-of-word characters. That is, use the character '{' for <START> and '}' for <END>.
         ###        Their indices are self.target_vocab.start_of_word and self.target_vocab.end_of_word, respectively.
-        
+        batch_size = initialStates[0].shape[1]
+        start_token = self.target_vocab.char2id['{']
+        end_token = self.target_vocab.char2id['}']
+        current_char = [start_token] * batch_size
+        decoder_words = ['{'] * batch_size
+
+        current_char_tensor = torch.tensor(current_char, device = device)
+
+        h_prev, c_prev = initialStates[0], initialStates[1]
+
+        for t in range(max_length):
+
+            _, (h_new, c_new) = self.forward(current_char_tensor.unsqueeze(0), (h_prev, c_prev))
+            s = self.char_output_projection(h_new.squeeze(0))      # shape: (batch, self.vocab_size)
+            p = torch.nn.functional.log_softmax(s, dim=1)
+            current_char_tensor = torch.argmax(p, dim=1)
+
+            for i in range(batch_size):
+                decoder_words[i] += self.target_vocab.id2char[current_char_tensor[i].item()]
+
+            h_prev = h_new
+            c_prev = c_new
+
+        for i in range(batch_size):
+            decoder_words[i] = decoder_words[i][1:]
+            decoder_words[i] = decoder_words[i].partition('}')[0]
+
+        return decoder_words
+
+
+
+
+
+
         
         ### END YOUR CODE
 
