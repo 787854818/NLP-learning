@@ -12,6 +12,7 @@ import math
 from typing import List
 
 import numpy as np
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -40,6 +41,20 @@ def pad_sents_char(sents, char_pad_token):
     ###
     ###     You should NOT use the method `pad_sents()` below because of the way it handles
     ###     padding and unknown words.
+    sent_pad_token = [char_pad_token for _ in range(max_word_length)]
+    max_sent_length = max(len(sent) for sent in sents)
+    sents_padded = copy.deepcopy(sents)
+
+    # pad word
+    for i in range(len(sents_padded)):
+        for j in range(len(sents_padded[i])):
+            c_pad_len = max_word_length - len(sents_padded[i][j])
+            if c_pad_len<=0:
+                sents_padded[i][j] = sents_padded[i][j][:max_word_length]
+            else:
+                sents_padded[i][j] = sents_padded[i][j] + [char_pad_token for _ in range(c_pad_len)]
+        s_pad_len = max_sent_length - len(sents_padded[i])
+        sents_padded[i] = sents_padded[i] + [sent_pad_token for _ in range(s_pad_len)]
 
 
     ### END YOUR CODE
@@ -60,7 +75,10 @@ def pad_sents(sents, pad_token):
     sents_padded = []
 
     ### COPY OVER YOUR CODE FROM ASSIGNMENT 4
-
+    max_len = max(len(sent) for sent in sents)
+    for i in range(len(sents)):
+        sent_len = len(sents[i])
+        sents_padded.append(sents[i] + [pad_token for j in range(max_len - sent_len)])
 
     ### END YOUR CODE FROM ASSIGNMENT 4
 

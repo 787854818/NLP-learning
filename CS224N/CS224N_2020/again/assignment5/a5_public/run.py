@@ -322,9 +322,10 @@ def main():
     """ Main func.
     """
     args = docopt(__doc__)
+    print(args)
 
     # Check pytorch version
-    assert(torch.__version__ == "1.0.0"), "Please update your installation of PyTorch. You have {} and you should have version 1.0.0".format(torch.__version__)
+    # assert(torch.__version__ == "1.0.0"), "Please update your installation of PyTorch. You have {} and you should have version 1.0.0".format(torch.__version__)
 
     # seed the random number generators
     seed = int(args['--seed'])
@@ -342,4 +343,39 @@ def main():
 
 
 if __name__ == '__main__':
+    args = {'--batch-size': '32',
+ '--beam-size': '5',
+ '--clip-grad': '5.0',
+ '--cuda': False,
+ '--dev-src': None,
+ '--dev-tgt': None,
+ '--dropout': '0.3',
+ '--embed-size': '256',
+ '--help': False,
+ '--hidden-size': '256',
+ '--input-feed': False,
+ '--log-every': '10',
+ '--lr': '0.001',
+ '--lr-decay': '0.5',
+ '--max-decoding-time-step': '70',
+ '--max-epoch': '30',
+ '--max-num-trial': '5',
+ '--no-char-decoder': False,
+ '--patience': '5',
+ '--sample-size': '5',
+ '--save-to': 'model.bin',
+ '--seed': '0',
+ '--train-src': None,
+ '--train-tgt': None,
+ '--uniform-init': '0.1',
+ '--valid-niter': '2000',
+ '--vocab': None,
+ 'MODEL_PATH': 'model.bin',
+ 'OUTPUT_FILE': 'outputs/test_outputs_local_q2.txt',
+ 'TEST_SOURCE_FILE': './en_es_data/test_tiny.es',
+ 'TEST_TARGET_FILE': './en_es_data/test_tiny.en',
+ 'decode': True,
+ 'train': False}
     main()
+    # train(args)
+    # decode(args)
